@@ -2,7 +2,8 @@ services:
   - type: web
     name: entellistore-backend
     env: node
-    buildCommand: npm install
+    plan: free
+    buildCommand: npm install && npm run build
     startCommand: npm start
     envVars:
       - key: NODE_ENV

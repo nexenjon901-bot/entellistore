@@ -30,6 +30,8 @@ const AdminPanel = () => {
   const [newLevel, setNewLevel] = useState('');
   const [newRank, setNewRank] = useState('');
   const [newSkins, setNewSkins] = useState('');
+  const [newPremiumSkins, setNewPremiumSkins] = useState('');
+  const [newAge, setNewAge] = useState('');
   const [newPrice, setNewPrice] = useState('');
   const [newImage, setNewImage] = useState('');
   const [newLoginType, setNewLoginType] = useState('Twitter');
@@ -69,9 +71,11 @@ const AdminPanel = () => {
     if (!newTitle || !newPrice) return alert("Nomi va narxini kiriting");
     const ok = await addProduct({
       title: newTitle,
-      level: newLevel || 1,
+      level: Number(newLevel) || 1,
       rank: newRank || 'Bronze',
       skins: newSkins ? newSkins.split(',').map(s => s.trim()) : [],
+      premiumSkins: Number(newPremiumSkins) || 0,
+      age: newAge || '1 yil',
       price: Number(newPrice),
       image: newImage || '',
       loginType: newLoginType,
@@ -82,6 +86,8 @@ const AdminPanel = () => {
     setNewLevel('');
     setNewRank('');
     setNewSkins('');
+    setNewPremiumSkins('');
+    setNewAge('');
     setNewPrice('');
     setNewImage('');
     setNewLoginType('Twitter');
@@ -99,7 +105,24 @@ const AdminPanel = () => {
     const file = e.target.files?.[0];
     if (!file) return;
     const reader = new FileReader();
-    reader.onloadend = () => setNewImage(reader.result);
+    reader.onloadend = () => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const MAX_WIDTH = 800;
+        let scale = 1;
+        if (img.width > MAX_WIDTH) {
+          scale = MAX_WIDTH / img.width;
+        }
+        canvas.width = img.width * scale;
+        canvas.height = img.height * scale;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        // Compress to WebP at 70% quality
+        setNewImage(canvas.toDataURL('image/webp', 0.7));
+      };
+      img.src = reader.result;
+    };
     reader.readAsDataURL(file);
   };
 
@@ -193,7 +216,21 @@ const AdminPanel = () => {
                     const file = e.dataTransfer.files[0];
                     if (file) {
                       const reader = new FileReader();
-                      reader.onloadend = () => setNewImage(reader.result);
+                      reader.onloadend = () => {
+                        const img = new Image();
+                        img.onload = () => {
+                          const canvas = document.createElement('canvas');
+                          const MAX_WIDTH = 800;
+                          let scale = 1;
+                          if (img.width > MAX_WIDTH) scale = MAX_WIDTH / img.width;
+                          canvas.width = img.width * scale;
+                          canvas.height = img.height * scale;
+                          const ctx = canvas.getContext('2d');
+                          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                          setNewImage(canvas.toDataURL('image/webp', 0.7));
+                        };
+                        img.src = reader.result;
+                      };
                       reader.readAsDataURL(file);
                     }
                   }}
@@ -239,6 +276,16 @@ const AdminPanel = () => {
               </div>
               <div style={{ display: 'flex', gap: '16px' }}>
                 <div style={{ flex: 1 }}>
+                  <label style={{ display: 'block', marginBottom: '8px' }}>Premium Skinlar soni</label>
+                  <input type="number" value={newPremiumSkins} onChange={(e) => setNewPremiumSkins(e.target.value)} placeholder="Misol uchun: 5" className="admin-input" />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <label style={{ display: 'block', marginBottom: '8px' }}>Ochilgan yili</label>
+                  <input type="text" value={newAge} onChange={(e) => setNewAge(e.target.value)} placeholder="Misol uchun: 2 yil" className="admin-input" />
+                </div>
+              </div>
+              <div style={{ display: 'flex', gap: '16px' }}>
+                <div style={{ flex: 1 }}>
                   <label style={{ display: 'block', marginBottom: '8px' }}>Ulangan turi</label>
                   <select value={newLoginType} onChange={(e) => setNewLoginType(e.target.value)} className="admin-input">
                     <option value="Twitter">Twitter</option>
@@ -246,6 +293,7 @@ const AdminPanel = () => {
                     <option value="Google">Google</option>
                     <option value="VK">VK</option>
                     <option value="GameCenter">GameCenter</option>
+                    <option value="Email">Email</option>
                   </select>
                 </div>
                 <div style={{ flex: 1 }}>

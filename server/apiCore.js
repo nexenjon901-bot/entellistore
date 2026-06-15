@@ -15,8 +15,26 @@ export function verifyPassword(password, stored) {
   return hash === verify;
 }
 
-export function sanitizeUser(user) {
+export function createToken(user) {
+  const data = Buffer.from(JSON.stringify({ id: user.id, role: user.role, exp: Date.now() + 86400000 * 7 })).toString('base64');
+  const signature = crypto.createHmac('sha256', process.env.JWT_SECRET || 'entelli-secret-123').update(data).digest('base64');
+  return `${data}.${signature}`;
+}
+
+export function verifyToken(token) {
+  if (!token) return null;
+  try {
+    const [data, sig] = token.split('.');
+    if (crypto.createHmac('sha256', process.env.JWT_SECRET || 'entelli-secret-123').update(data).digest('base64') !== sig) return null;
+    const parsed = JSON.parse(Buffer.from(data, 'base64').toString('utf8'));
+    if (parsed.exp < Date.now()) return null;
+    return parsed;
+  } catch { return null; }
+}
+
+export function sanitizeUser(user, includeToken = false) {
   const { passwordHash, ...safe } = user;
+  if (includeToken) safe.token = createToken(user);
   return safe;
 }
 
@@ -39,11 +57,29 @@ export async function ensureAdmin(db, writeDb) {
   }
 }
 
-export async function handleApi({ method, path, body, readDb, writeDb }) {
-  const db = { ...DEFAULT_DATA, ...await readDb() };
+export async function handleApi({ method, path, body, headers = {}, readDb, writeDb }) {
+  const dbData = await readDb();
+  const db = { ...DEFAULT_DATA, ...dbData };
+  if (!Array.isArray(db.users)) db.users = [];
+  if (!Array.isArray(db.products)) db.products = [];
+  if (!Array.isArray(db.orders)) db.orders = [];
+  if (!Array.isArray(db.supportChats)) db.supportChats = [];
   await ensureAdmin(db, writeDb);
 
+  const authHeader = headers.authorization || headers.Authorization || '';
+  const tokenStr = authHeader.split(' ')[1] || '';
+  const session = verifyToken(tokenStr);
+
   const respond = (status, data) => ({ status, body: data });
+
+  // Admin checks for modifying operations
+  if (method !== 'GET' && method !== 'OPTIONS' && !path.startsWith('/auth') && path !== '/orders') {
+    if (!session || session.role !== 'admin') {
+      if (!(path === '/support/messages' && session)) {
+         return respond(403, { error: 'Ruxsat etilmagan (Forbidden)' });
+      }
+    }
+  }
 
   if (method === 'GET' && path === '/health') {
     return respond(200, { ok: true });
@@ -54,7 +90,7 @@ export async function handleApi({ method, path, body, readDb, writeDb }) {
       products: db.products,
       orders: db.orders,
       supportChats: db.supportChats,
-      users: db.users.map(sanitizeUser),
+      users: db.users.map(u => sanitizeUser(u, false)),
     });
   }
 
@@ -67,7 +103,7 @@ export async function handleApi({ method, path, body, readDb, writeDb }) {
     if (found.status === 'Banned') {
       return respond(403, { error: 'Hisobingiz bloklangan.' });
     }
-    return respond(200, { user: sanitizeUser(found) });
+    return respond(200, { user: sanitizeUser(found, true) });
   }
 
   if (method === 'POST' && path === '/auth/register') {
@@ -99,7 +135,7 @@ export async function handleApi({ method, path, body, readDb, writeDb }) {
     };
     db.users.push(newUser);
     await writeDb(db);
-    return respond(201, { user: sanitizeUser(newUser) });
+    return respond(201, { user: sanitizeUser(newUser, true) });
   }
 
   if (method === 'POST' && path === '/auth/google') {
@@ -217,7 +253,7 @@ export async function handleApi({ method, path, body, readDb, writeDb }) {
       if (body[key] !== undefined) db.users[idx][key] = body[key];
     }
     await writeDb(db);
-    return respond(200, sanitizeUser(db.users[idx]));
+    return respond(200, sanitizeUser(db.users[idx], false));
   }
 
   return respond(404, { error: 'Topilmadi' });

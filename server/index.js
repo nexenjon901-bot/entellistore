@@ -40,6 +40,7 @@ async function route(req, res) {
       method: req.method,
       path: apiPath,
       body: req.body,
+      headers: req.headers,
       readDb,
       writeDb,
     });
@@ -62,6 +63,15 @@ app.post('/api/products', route);
 app.delete('/api/products/:id', route);
 app.post('/api/support/messages', route);
 app.patch('/api/users/:id', route);
+
+// Serve frontend if deployed as a single app (e.g. Render)
+const distPath = path.join(__dirname, '../dist');
+if (fs.existsSync(distPath)) {
+  app.use(express.static(distPath));
+  app.get('*', (req, res) => {
+    res.sendFile(path.join(distPath, 'index.html'));
+  });
+}
 
 app.listen(PORT, () => {
   const db = readDbSync();

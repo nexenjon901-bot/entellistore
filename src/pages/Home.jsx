@@ -157,25 +157,7 @@ const Home = ({ lang }) => {
         </div>
       </section>
 
-      {/* ── TOP ACCOUNTS ── */}
-      <section className="products-section">
-        <div className="container">
-          <div className="section-header">
-            <div>
-              <div className="section-label">Top Accounts</div>
-              <h2>{t.trending}</h2>
-            </div>
-            <Link to="/catalog" className="view-all-link">
-              {t.viewAll} <ArrowRight size={16} />
-            </Link>
-          </div>
-          <div className="products-grid">
-            {products.slice(0, 4).map(product => (
-              <ProductCard key={product.id} product={product} lang={lang} />
-            ))}
-          </div>
-        </div>
-      </section>
+
 
       {/* ── CTA BANNER ── */}
       <section style={{

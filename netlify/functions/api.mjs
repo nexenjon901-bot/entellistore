@@ -47,7 +47,10 @@ export default async (request) => {
   }
 
   try {
-    const result = await handleApi({ method, path, body, readDb, writeDb });
+    const headersObj = {};
+    for (const [k, v] of request.headers.entries()) headersObj[k.toLowerCase()] = v;
+    
+    const result = await handleApi({ method, path, body, headers: headersObj, readDb, writeDb });
     return new Response(JSON.stringify(result.body), {
       status: result.status,
       headers: {

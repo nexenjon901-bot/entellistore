@@ -3,9 +3,17 @@ import { jwtDecode } from 'jwt-decode';
 const API_BASE = import.meta.env.VITE_API_URL || '/api';
 
 async function request(path, options = {}) {
+  const userStr = localStorage.getItem('entelli_user');
+  let token = null;
+  if (userStr) {
+    try { token = JSON.parse(userStr).token; } catch {}
+  }
+  const headers = { 'Content-Type': 'application/json', ...options.headers };
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+
   const res = await fetch(`${API_BASE}${path}`, {
-    headers: { 'Content-Type': 'application/json', ...options.headers },
     ...options,
+    headers,
   });
 
   const data = await res.json().catch(() => ({}));
