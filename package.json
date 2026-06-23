@@ -9,8 +9,9 @@
     "dev:client": "vite",
     "build": "vite build",
     "lint": "eslint .",
-    "preview": "vite preview",
-    "start": "node server/index.js"
+    "preview": "npm run build && wrangler dev",
+    "start": "node server/index.js",
+    "deploy": "npm run build && wrangler deploy"
   },
   "dependencies": {
     "@netlify/blobs": "^8.2.0",
@@ -29,12 +30,14 @@
     "vite": "^8.0.16"
   },
   "devDependencies": {
+    "@cloudflare/vite-plugin": "^1.42.1",
     "@eslint/js": "^10.0.1",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "eslint": "^10.3.0",
     "eslint-plugin-react-hooks": "^7.1.1",
     "eslint-plugin-react-refresh": "^0.5.2",
-    "globals": "^17.6.0"
+    "globals": "^17.6.0",
+    "wrangler": "^4.103.0"
   }
 }
