@@ -7,7 +7,7 @@ async function readDb() {
   try {
     const store = getStore(STORE);
     const data = await store.get('db', { type: 'json' });
-    if (data) return data;
+    if (data && typeof data === 'object') return { ...DEFAULT_DATA, ...data };
   } catch (e) {
     console.warn('Blob read failed:', e.message);
   }
@@ -15,8 +15,13 @@ async function readDb() {
 }
 
 async function writeDb(data) {
-  const store = getStore(STORE);
-  await store.setJSON('db', data);
+  try {
+    const store = getStore(STORE);
+    await store.setJSON('db', data);
+  } catch (e) {
+    console.warn('Blob write failed (data stored in-memory only):', e.message);
+    // Don't throw — allow request to complete even if persistence fails
+  }
 }
 
 function parsePath(rawUrl) {
@@ -33,8 +38,9 @@ export default async (request) => {
       status: 204,
       headers: {
         'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Headers': 'Content-Type',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
         'Access-Control-Allow-Methods': 'GET, POST, PATCH, DELETE, OPTIONS',
+        'Access-Control-Max-Age': '86400',
       },
     });
   }
@@ -56,13 +62,17 @@ export default async (request) => {
       headers: {
         'Content-Type': 'application/json',
         'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
       },
     });
   } catch (err) {
     console.error('API error:', err);
     return new Response(JSON.stringify({ error: 'Server xatosi' }), {
       status: 500,
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*',
+      },
     });
   }
 };

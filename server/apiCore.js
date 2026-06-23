@@ -1,4 +1,4 @@
-import crypto from 'crypto';
+import crypto from 'node:crypto';
 import { DEFAULT_DATA } from '../shared/defaults.js';
 
 export { DEFAULT_DATA } from '../shared/defaults.js';

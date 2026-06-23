@@ -28,8 +28,11 @@ export const api = {
   fetchData: () => request('/data'),
   register: body => request('/auth/register', { method: 'POST', body: JSON.stringify(body) }),
   login: body => request('/auth/login', { method: 'POST', body: JSON.stringify(body) }),
-  googleLogin: async (credential) => {
-    const decoded = jwtDecode(credential);
+  googleLogin: async (credentialOrObj) => {
+    // Support both string token and { credential: string } object
+    const token = typeof credentialOrObj === 'string' ? credentialOrObj : credentialOrObj?.credential;
+    if (!token) throw new Error('Google credential topilmadi');
+    const decoded = jwtDecode(token);
     return request('/auth/google', {
       method: 'POST',
       body: JSON.stringify({
